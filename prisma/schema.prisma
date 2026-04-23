@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  LAWYER
+  CLIENT
+}
+
+enum CaseType {
+  TUTELA
+  DERECHO_PETICION
+  HABEAS_CORPUS
+  ACCION_CUMPLIMIENTO
+  ACCION_POPULAR
+  ACCION_GRUPO
+}
+
+enum CaseStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PersonType {
+  NATURAL
+  JURIDICA
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  CLOSED
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role       @default(CLIENT)
+  createdAt DateTime   @default(now())
+  cases     Case[]     @relation("ClientCases")
+  lawyerCases Case[]   @relation("LawyerCases")
+  leads     Lead[]
+  messages  Message[]
+  blogPosts BlogPost[]
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  caseNumber  String     @unique @default(cuid())
+  title       String
+  description String     @db.Text
+  type        CaseType
+  status      CaseStatus @default(PENDING)
+  priority    Priority   @default(MEDIUM)
+  clientId    String
+  client      User       @relation("ClientCases", fields: [clientId], references: [id])
+  lawyerId    String?
+  lawyer      User?      @relation("LawyerCases", fields: [lawyerId], references: [id])
+  documents   Document[]
+  messages    Message[]
+  timeline    TimelineEvent[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  name       String
+  type       String
+  url        String
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploadedAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  name          String
+  email         String
+  phone         String
+  personType    PersonType @default(NATURAL)
+  rightViolated String
+  entity        String
+  urgency       Urgency    @default(MEDIUM)
+  description   String     @db.Text
+  status        LeadStatus @default(NEW)
+  assignedToId  String?
+  assignedTo    User?      @relation(fields: [assignedToId], references: [id])
+  createdAt     DateTime   @default(now())
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  excerpt   String
+  content   String   @db.Text
+  tags      String[]
+  readTime  Int      @default(5)
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  description String
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
