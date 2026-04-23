@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     // Store in DB if available
     if (process.env.DATABASE_URL) {
       try {
-        const { db } = await import('@/lib/db')
+        const { prisma: db } = await import('@/lib/db')
         await db.lead.create({ data: {
           name: data.name,
           email: data.email,
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
     // Send email if Resend configured
     if (process.env.RESEND_API_KEY) {
       try {
-        const { sendWelcomeEmail } = await import('@/lib/emails')
-        await sendWelcomeEmail(data.name, data.email)
+        const { welcomeEmail } = await import('@/lib/emails')
+        await welcomeEmail(data.name, data.email)
       } catch {
         // Email not configured — continue
       }
